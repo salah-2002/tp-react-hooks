@@ -1,41 +1,70 @@
 import { useState, useEffect } from 'react';
 
-// TODO: Exercice 3.1 - Créer le hook useDebounce
-// TODO: Exercice 3.2 - Créer le hook useLocalStorage
+const mockProducts = Array.from({ length: 18 }, (_, i) => ({
+  id: i + 1,
+  title: `Product ${i + 1}`,
+  description: `Description for product ${i + 1}`,
+  price: (10 + i).toFixed(2),
+  thumbnail: `https://picsum.photos/seed/${i + 1}/300/200`
+}));
 
-const useProductSearch = () => {
+const PRODUCTS_PER_PAGE = 6;
+
+const useProductSearch = (searchTerm = '') => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // TODO: Exercice 4.2 - Ajouter l'état pour la pagination
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const filtered = mockProducts.filter(p =>
+    p.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filtered.length / PRODUCTS_PER_PAGE);
+
+  const fetchProducts = () => {
+    try {
+      const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
+      const end = start + PRODUCTS_PER_PAGE;
+      const pageProducts = filtered.slice(start, end);
+
+      setTimeout(() => {
+        setProducts(pageProducts);
+        setLoading(false);
+      }, 500);
+    } catch (err) {
+      setError('Something went wrong');
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        // TODO: Exercice 4.2 - Modifier l'URL pour inclure les paramètres de pagination
-        const response = await fetch('https://api.daaif.net/products?delay=1000');
-        if (!response.ok) throw new Error('Erreur réseau');
-        const data = await response.json();
-        setProducts(data.products);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
+    setCurrentPage(1);
+  }, [searchTerm]);
 
+  useEffect(() => {
+    setLoading(true);
     fetchProducts();
-  }, []); // TODO: Exercice 4.2 - Ajouter les dépendances pour la pagination
+  }, [currentPage, searchTerm]);
 
-  // TODO: Exercice 4.1 - Ajouter la fonction de rechargement
-  // TODO: Exercice 4.2 - Ajouter les fonctions pour la pagination
+  const reload = () => {
+    setLoading(true);
+    setError(null);
+    fetchProducts();
+  };
 
-  return { 
-    products, 
-    loading, 
+  const nextPage = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
+  const previousPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
+
+  return {
+    products,
+    loading,
     error,
-    // TODO: Exercice 4.1 - Retourner la fonction de rechargement
-    // TODO: Exercice 4.2 - Retourner les fonctions et états de pagination
+    reload,
+    currentPage,
+    totalPages,
+    nextPage,
+    previousPage
   };
 };
 
